@@ -196,7 +196,9 @@ async function showModal() {
     }
 
     // Show modal.
+    console.log("pre show")
     await modal.show();
+    console.log("nach show")
     modalopen = true;
     const body = document.querySelector('body');
     body.classList.add(MODAL_OPEN);

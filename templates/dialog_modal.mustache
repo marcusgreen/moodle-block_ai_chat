@@ -39,12 +39,15 @@ along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 
 {{< core/modal }}
+    {{$classes}}block_ai_chat_reactive_main_component{{/classes}}
     {{$title}}
         <div class="block_ai_chat_title">{{title}}</div>
         {{> block_ai_chat/headeroptions }}
     {{/title}}
     {{$body}}
         <div class="block_ai_chat_modal_body">
+            <div data-block_ai_chat-element="personabanner"></div>
+            <button class="btn btn-danger" data-block_ai_chat-element="personaupdatebutton">CHANGE PERSONA</button>
             <div class="block_ai_chat-dialog">
                 <div class="block_ai_chat-output-wrapper">
                     <div class="gradient-overlay"></div>
@@ -73,3 +76,8 @@ along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
     {{$footer}}
     {{/footer}}
 {{/ core/modal }}
+{{#js}}
+    require(['block_ai_chat/ai_chat_main'], function(AiChatMain) {
+        AiChatMain.init();
+    });
+{{/js}}
