@@ -26,6 +26,18 @@ import ajax from 'core/ajax';
  */
 class Mutations {
 
+    async putPersona(stateManager, contextid, fields) {
+
+        let ajaxresult = await ajax.call([{
+            methodname: 'block_ai_chat_put_persona',
+            args: {
+                contextid,
+                fields,
+            }
+        }])[0];
+        stateManager.processUpdates(ajaxresult);
+    }
+
     selectCurrentPersona(stateManager) {
         console.log('mutatino called')
         // The first thing we need to do is get the current state.

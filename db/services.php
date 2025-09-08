@@ -68,4 +68,12 @@ $functions = [
         'ajax'          => true,
         'capabilities'  => 'local/ai_manager:use',
     ],
+        'block_ai_chat_put_persona' => [
+                'classname'     => 'block_ai_chat\external\put_persona',
+                'methodname'    => 'execute',
+                'description'   => 'Update persona',
+                'type'          => 'write',
+                'ajax'          => true,
+                'capabilities'  => 'local/ai_manager:use',
+        ],
 ];

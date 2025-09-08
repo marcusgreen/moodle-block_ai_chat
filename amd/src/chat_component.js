@@ -36,7 +36,7 @@ class ChatComponent extends BaseComponent {
         this.addEventListener(
             this.getElement(this.selectors.PERSONA_UPDATE_BUTTON),
             'click',
-            this._selectPersonaListener
+            this._putPersonaListener
         );
         this._refreshMessages({element: state});
         this._refreshPersona({element: state});
@@ -90,12 +90,18 @@ class ChatComponent extends BaseComponent {
     }
 
 
-    _selectPersonaListener() {
+    _putPersonaListener() {
         // We don't want to submit the form.
         event.preventDefault();
         // Get the selected person id.
-console.log('Firing the event')
-        this.reactive.dispatch('selectCurrentPersona');
+        console.log('Firing the event')
+        const persona = {
+            userid: 0,
+            name: "new name",
+            prompt: "New prompt",
+            userinfo: "Das ist eine neue persona",
+        };
+        this.reactive.dispatch('putPersona', 21, persona);
     }
 }
 
