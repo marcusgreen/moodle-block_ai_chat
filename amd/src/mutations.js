@@ -14,6 +14,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 import ajax from 'core/ajax';
+import * as Ajax from "../../../../lib/amd/src/ajax";
 
 /**
  * Default mutation manager
@@ -35,12 +36,24 @@ class Mutations {
                 fields,
             }
         }])[0];
+        console.log(ajaxresult);
         stateManager.processUpdates(ajaxresult);
     }
 
-    selectCurrentPersona(stateManager) {
+    async selectCurrentPersona(stateManager, contextid, personaid) {
+
         console.log('mutatino called')
-        // The first thing we need to do is get the current state.
+
+        let ajaxresult = await ajax.call([{
+            methodname: 'block_ai_chat_select_persona',
+            args: {
+                contextid,
+                personaid,
+            }
+        }])[0];
+        console.log(ajaxresult);
+        stateManager.processUpdates(ajaxresult);
+        /*// The first thing we need to do is get the current state.
         const state = stateManager.state;
         // State is always on read mode. To change any value first we need to unlock it.
         stateManager.setReadOnly(false);
@@ -49,7 +62,7 @@ class Mutations {
             userFacedText: 'asd'
         };
         // All mutations should restore the read mode. This will trigger all the reactive events.
-        stateManager.setReadOnly(true);
+        stateManager.setReadOnly(true);*/
     }
 
     /**
@@ -72,8 +85,24 @@ class Mutations {
         return ajaxresult;*/
     }
 
-
-
+    async submitAiRequest(stateManager, prompt) {
+        // TODO First render a loading message
+        const options = {
+            conversationid: stateManager.state.conversationid,
+        };
+        const requestOptions = JSON.stringify(options);
+        const result = await Ajax.call([{
+            methodname: 'block_ai_chat_request_ai',
+            args: {
+                contextid: stateManager.state.static.contextid,
+                prompt: prompt,
+                options: requestOptions
+            }
+        }])[0];
+        // TODO error handling
+        console.log(result);
+        stateManager.processUpdates(result);
+    }
 }
 
 export const mutations = new Mutations();

@@ -18,6 +18,8 @@ import {Reactive} from 'core/reactive';
 import {eventTypes, notifyBlockAiChatStateUpdated} from 'block_ai_chat/events';
 import ChatComponent from 'block_ai_chat/chat_component';
 import {mutations} from 'block_ai_chat/mutations';
+import * as Ajax from 'core/ajax';
+
 
 /**
  * Main module for the reactive frontend of the block_ai_chat.
@@ -27,23 +29,47 @@ import {mutations} from 'block_ai_chat/mutations';
  * @author     Philipp Memmel
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-export const init = () => {
+export const init = async (contextid, userid) => {
     const state = {
-        agentMode: {
-            active: false,
+        "static": {
+            "contextid": 21,
+            "currentUser": 40
         },
-        messages: [
+        "config": {
+            "conversationLimit": 5,
+            "windowMode": "docked",
+            "mode": "agent",
+            "CurrentConversationId": 0
+        },
+        "messages": [],
+        "personas": [
             {
-                id: 1,
-                text: "first message"
+                "id": 13,
+                "name": "Friendly Bot",
+                "prompt": "You are a friendly and helpful AI assistant.",
+                "userinfo": "Very friendly chatbot",
+                "userid": 0
+            },
+            {
+                "id": 14,
+                "name": "Bad person",
+                "prompt": "You are a very bad person insulting your conversation partner all the time.",
+                "userinfo": "Really bad person",
+                "userid": 40
             }
-        ],
-        currentPersona: {
-            userFacedText: "I'm a crazy professor",
-            prompt: "You are a crazy professor and always answers in a crazy style"
-        }
+        ]
     };
-
+    const result = await Ajax.call([{
+        methodname: 'block_ai_chat_get_personas',
+        args: {
+            contextid,
+            userid
+        }
+    }])[0];
+    state.personas = result[0].fields;
+    // TODO: Change this to REAL selected current persona
+    state.config.currentPersona = result[0].fields[0].id;
+    console.log(state);
 
     const reactiveChat = new Reactive({
         name: 'block_ai_chat_reactive_chat',
@@ -60,6 +86,18 @@ export const init = () => {
         element: mainElement,
         reactive: reactiveChat,
     });
-
     reactiveChat.setMutations(mutations);
+
+    const messages = await Ajax.call([{
+        methodname: 'block_ai_chat_get_messages',
+        args: {
+            contextid,
+            userid
+        }
+    }])[0];
+    state.config.currentConversationId = messages[0].conversationid;
+    console.log(messages)
+    reactiveChat.stateManager.processUpdates(messages);
+
+    console.log(state);
 };

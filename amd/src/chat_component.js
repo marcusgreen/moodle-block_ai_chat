@@ -1,4 +1,6 @@
 import {BaseComponent} from 'core/reactive';
+import Templates from 'core/templates';
+import * as helper from 'block_ai_chat/helper';
 
 class ChatComponent extends BaseComponent {
 
@@ -16,7 +18,9 @@ class ChatComponent extends BaseComponent {
         this.selectors = {
             MESSAGES: `[data-block_ai_chat-element='messages']`,
             PERSONABANNER: `[data-block_ai_chat-element='personabanner']`,
-            PERSONA_UPDATE_BUTTON: `[data-block_ai_chat-element='personaupdatebutton']`,
+            PERSONA_SELECT_DROPDOWN: `[data-block_ai_chat-element='personaselectdropdown']`,
+            INPUT_TEXTAREA: `[data-block_ai_chat-element='inputtextarea']`,
+            SUBMIT_BUTTON: `[data-block_ai_chat-element='submitbutton']`,
         };/*
         this.classes = {
             BITTEN: `bitten`,
@@ -32,14 +36,27 @@ class ChatComponent extends BaseComponent {
      * @param {object} state the initial state
      */
     stateReady(state) {
+
         console.log(state)
+        const personaDropdownContainer = this.getElement(this.selectors.PERSONA_SELECT_DROPDOWN);
+        this.reactive.state.personas.forEach((persona) => {
+            const optionElement = document.createElement('option');
+            optionElement.value = persona.id;
+            optionElement.text = persona.name;
+            personaDropdownContainer.appendChild(optionElement);
+        });
+        const personaBanner = this.getElement(this.selectors.PERSONABANNER);
+        personaBanner.innerText = `${this.reactive.state.personas.get(state.config.currentPersona).userinfo}`;
         this.addEventListener(
-            this.getElement(this.selectors.PERSONA_UPDATE_BUTTON),
-            'click',
-            this._putPersonaListener
+            this.getElement(this.selectors.PERSONA_SELECT_DROPDOWN),
+            'change',
+            this._selectCurrentPersonaListener
         );
-        this._refreshMessages({element: state});
-        this._refreshPersona({element: state});
+        const textarea = this.getElement(this.selectors.INPUT_TEXTAREA);
+        console.log(textarea)
+        const sendRequestButton = this.getElement(this.selectors.SUBMIT_BUTTON);
+        sendRequestButton.addEventListener('click', this._submitAiRequestListener.bind(this));
+        this._refreshPersona({element: state.config});
     }
 
     /**
@@ -50,8 +67,8 @@ class ChatComponent extends BaseComponent {
      */
     getWatchers() {
         return [
-            {watch: `state.messages:updated`, handler: this._refreshMessages},
-            {watch: `state.currentPersona:updated`, handler: this._refreshPersona},
+            {watch: `messages:created`, handler: this._renderMessageToChatArea},
+            {watch: `config.currentPersona:updated`, handler: this._refreshPersona},
         ];
     }
 
@@ -64,9 +81,25 @@ class ChatComponent extends BaseComponent {
      * @param {object} param the watcher param.
      * @param {object} param.element the person structure.
      */
-    _refreshMessages({element}) {
+    async _renderMessageToChatArea({element}) {
         // We have a convenience method to locate elements inside the component.
+        console.log('MESSAGES WERDEN GERENDERT')
         console.log(element);
+        // TODO Filter messages that do not belong to the current conversation
+
+        const templateData = {
+            id: element.id,
+            senderai: element.sender === 'ai',
+            content: element.content
+        };
+        const {html, js} = await Templates.renderForPromise('block_ai_chat/message', templateData);
+        Templates.appendNodeContents('.block_ai_chat-output', html, js);
+
+        // Add copy listener for question and reply.
+        helper.attachCopyListenerLast();
+
+        // Scroll the modal content to the bottom.
+        helper.scrollToBottom();
         //const target = this.getElement(this.selectors.MESSAGES, element.id);
     }
 
@@ -81,11 +114,11 @@ class ChatComponent extends BaseComponent {
      */
     _refreshPersona({element}) {
         // We have a convenience method to locate elements inside the component.
-        console.log(element)
-        console.log(element.currentPersona);
+        const newPersonaId = element.currentPersona;
+        console.log(newPersonaId);
         console.log('PERSONA WIRD REFRESHED')
         console.log(this.getElement(this.selectors.PERSONABANNER))
-        this.getElement(this.selectors.PERSONABANNER).innerText = `userFacedText: ${element.currentPersona.userFacedText}`;
+        this.getElement(this.selectors.PERSONABANNER).innerText = `${this.reactive.state.personas.get(newPersonaId).userinfo}`;
         //const target = this.getElement(this.selectors.MESSAGES, element.id);
     }
 
@@ -102,6 +135,18 @@ class ChatComponent extends BaseComponent {
             userinfo: "Das ist eine neue persona",
         };
         this.reactive.dispatch('putPersona', 21, persona);
+    }
+
+    _selectCurrentPersonaListener() {
+        event.preventDefault();
+        this.reactive.dispatch('selectCurrentPersona', this.reactive.state.static.contextid, event.target.value);
+    }
+
+    _submitAiRequestListener() {
+        event.preventDefault();
+        const textarea = this.getElement(this.selectors.INPUT_TEXTAREA);
+        const prompt = textarea.value;
+        this.reactive.dispatch('submitAiRequest', prompt);
     }
 }
 

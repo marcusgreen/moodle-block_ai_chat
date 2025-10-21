@@ -26,12 +26,8 @@
     }
 }}
 {{! Show message from user or ai }}
-{{#sender}}
-<div class="message agent">
-{{/sender}}
-{{^sender}}
-<div class="message ai">
-{{/sender}}
+
+<div class="message {{#senderai}}agent{{/senderai}} {{^senderai}}{{/senderai}}" data-block_ai_chat-id="{{id}}">
     <div class="content filter_mathjaxloader_equation">
         <img src="{{globals.config.wwwroot}}/blocks/ai_chat/pix/ai-icon.svg" alt="" class="ai_chat_icon mr-2">
         <div class="copiedtoast">{{#str}} copied, block_ai_chat {{/str}}</div>
@@ -42,7 +38,7 @@
     </div>
 </div>
 {{! Insert placeholder in case of pending question }}
-{{^answer}}
+{{#loading}}
 <div class="message ai">
     <div class="content awaitanswer filter_mathjaxloader_equation">
     <img src="{{globals.config.wwwroot}}/blocks/ai_chat/pix/ai-icon.svg" alt="" class="ai_chat_icon mr-2">
@@ -54,5 +50,5 @@
         </div>
     </div>
 </div>
-{{/answer}}
+{{/loading}}
 </div>

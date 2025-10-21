@@ -22,6 +22,7 @@ use context_block;
 use cm_info;
 use core_external\external_multiple_structure;
 use core_external\external_single_structure;
+use local_ai_manager\ai_manager_utils;
 use stdClass;
 use core_external\external_value;
 use moodle_exception;
@@ -70,11 +71,11 @@ class manager {
         }
 
         $personaobject = (object) [
-                'userid' => $data->userid,
-                'name' => $data->name,
-                'prompt' => $data->prompt,
-                'userinfo' => $data->userinfo,
-                'timemodified' => time(),
+            'userid' => $data->userid,
+            'name' => $data->name,
+            'prompt' => $data->prompt,
+            'userinfo' => $data->userinfo,
+            'timemodified' => time(),
         ];
 
         if (empty($data->id)) {
@@ -84,14 +85,86 @@ class manager {
             $personaobject->id = $data->id;
             $DB->update_record('block_ai_chat_personas', $personaobject);
         }
-        return (object) [
+        $returnpersona = [
+            'id' => $personaobject->id,
+            'userid' => $personaobject->userid,
+            'name' => $personaobject->name,
+            'prompt' => $personaobject->prompt,
+            'userinfo' => $personaobject->userinfo,
+        ];
+
+        return [
+            [
+                //[
+                'name' => 'personas',
+                'action' => empty($data->id) ? 'put' : 'update',
+                'fields' => $returnpersona,
+                //]
+            ]
+        ];
+    }
+
+    public function get_personas(int $userid = 0): array {
+        $personas = persona::get_all_personas($userid);
+        if (empty($personas)) {
+            return [];
+        } else {
+            return [
                 [
-                        [
-                                'name' => 'personas',
-                                'action' => empty($data->id) ? 'put' : 'update',
-                                'fields' => $personaobject,
-                        ]
+                    'name' => 'personas',
+                    'action' => 'put',
+                    'fields' => $personas,
                 ]
+            ];
+        }
+    }
+
+    public function get_messages(int $userid): array {
+        // We limit to purpose 'chat' here because we do not want the requests from the integrated tiny_ai tools to be loaded
+        // for displaying our conversations. This especially is a performance issue, because the field 'requestoptions' contains
+        // base64 decoded images for purpose 'itt', for example, which slows down the database query extremely.
+        $logentries = \local_ai_manager\ai_manager_utils::get_log_entries(
+            'block_ai_chat',
+            $this->context->id,
+            $userid,
+            0,
+            false,
+            '*',
+            ['chat']
+        );
+        $messages = [];
+        // Go over all log entries and create conversation items.
+        foreach ($logentries as $logentry) {
+            // Ignore values without itemid.
+            if (empty($logentry->itemid)) {
+                continue;
+            }
+            $messages = array_merge($messages, $this->convert_log_entry_to_messages($logentry));
+        }
+        return $messages;
+    }
+
+    public function select_persona(int $personaid): array {
+        global $DB;
+        $currentrecord = $DB->get_record('block_ai_chat_personas_selected', ['contextid' => $this->context->id]);
+        if ($currentrecord) {
+            $currentrecord->personasid = $personaid;
+            $DB->update_record('block_ai_chat_personas_selected', $currentrecord);
+        } else {
+            $newrecord = new \stdClass();
+            $newrecord->contextid = $this->context->id;
+            $newrecord->personasid = $personaid;
+            $DB->insert_record('block_ai_chat_personas_selected', $newrecord);
+        }
+
+        return [
+            [
+                'name' => 'config',
+                'action' => 'update',
+                'fields' => [
+                    'currentPersona' => $personaid,
+                ],
+            ]
         ];
     }
 
@@ -106,50 +179,21 @@ class manager {
 
         $currentpersona = $DB->get_record('block_ai_chat_personas_selected', ['contextid' => $this->context->id]);
         $state->aiChat = (object) [
-                'contextid' => $this->context->id,
-                'currentPersona' => $currentpersona->personasid,
+            'contextid' => $this->context->id,
+            'currentPersona' => $currentpersona->personasid,
         ];
 
         $personas = persona::get_all_personas();
         foreach ($personas as $persona) {
             $state->personas[] = (object) [
-                    'id' => $persona->id,
-                    'userid' => $persona->userid,
-                    'name' => $persona->name,
-                    'prompt' => $persona->prompt,
-                    'userinfo' => $persona->userinfo,
+                'id' => $persona->id,
+                'userid' => $persona->userid,
+                'name' => $persona->name,
+                'prompt' => $persona->prompt,
+                'userinfo' => $persona->userinfo,
             ];
         }
         return $state;
-    }
-
-    /**
-     * Generate a entry state object.
-     *
-     * @param stdClass the entry record
-     * @return stdClass the entry state object.
-     */
-    public function get_entry_state(stdClass $record): stdClass {
-        return (object) [
-                'id' => $record->id,
-                'userid' => $record->userid,
-                'current' => $record->current,
-                'content' => $record->content,
-        ];
-    }
-
-    /**
-     * Generate a entry update object.
-     *
-     * @param stdClass the entry record
-     * @return stdClass the entry update object.
-     */
-    public function get_entry_state_update(stdClass $record): stdClass {
-        return (object) [
-                'name' => 'entries',
-                'action' => 'put',
-                'fields' => $this->get_entry_state($record),
-        ];
     }
 
     /**
@@ -160,9 +204,9 @@ class manager {
      */
     public function get_entry_state_delete(int $recordid): stdClass {
         return (object) [
-                'name' => 'entries',
-                'action' => 'delete',
-                'fields' => (object) ['id' => $recordid],
+            'name' => 'entries',
+            'action' => 'delete',
+            'fields' => (object) ['id' => $recordid],
         ];
     }
 
@@ -173,17 +217,24 @@ class manager {
      */
     public static function get_state_structure(): external_single_structure {
         return new external_single_structure([
-                'aiChat' => new external_single_structure(
-                        [
-                                'contextid' => new external_value(PARAM_INT, 'Activity ID'),
-                                'currentPersona' => new external_value(PARAM_INT, 'id of the current persona')
-                        ],
-                        'AI chat general data'
-                ),
-                'personas' => new external_multiple_structure(
-                        self::get_persona_structure(),
-                        'The personas'
-                ),
+            'config' => new external_single_structure(
+                [
+                    'contextid' => new external_value(PARAM_INT, 'Activity ID'),
+                    'currentPersona' => new external_value(PARAM_INT, 'id of the current persona', VALUE_OPTIONAL),
+                    'conversationLimit' => new external_value(PARAM_INT, 'number of messages to pass to query', VALUE_OPTIONAL),
+                    'windowMode' => new external_value(PARAM_TEXT, 'window mode', VALUE_OPTIONAL),
+                    'mode' => new external_value(PARAM_TEXT, 'mode', VALUE_OPTIONAL)
+                ],
+                'AI chat general data'
+            ),
+            'messages' => new external_multiple_structure(
+                self::get_messages_structure(),
+                'The messages'
+            ),
+            'personas' => new external_multiple_structure(
+                self::get_persona_structure(),
+                'The personas'
+            ),
         ], 'AI chat state');
     }
 
@@ -194,31 +245,103 @@ class manager {
      */
     public static function get_persona_structure(): external_single_structure {
         return new external_single_structure(
-                [
-                        'id' => new external_value(PARAM_INT, 'persona id', VALUE_OPTIONAL),
-                        'userid' => new external_value(PARAM_INT, 'The user id'),
-                        'name' => new external_value(PARAM_RAW, 'The display name of the persona'),
-                        'prompt' => new external_value(PARAM_RAW, 'Prompt of the persona'),
-                        'userinfo' => new external_value(PARAM_RAW, 'The user info'),
-                ]
+            [
+                'id' => new external_value(PARAM_INT, 'persona id', VALUE_OPTIONAL),
+                'userid' => new external_value(PARAM_INT, 'The user id'),
+                'name' => new external_value(PARAM_RAW, 'The display name of the persona'),
+                'prompt' => new external_value(PARAM_RAW, 'Prompt of the persona'),
+                'userinfo' => new external_value(PARAM_RAW, 'The user info'),
+            ]
         );
     }
 
     /**
-     * Get the state structure.
+     * Return the structure for a message object
      *
      * @return external_single_structure
      */
-    public static function get_update_structure(): external_multiple_structure {
-        return new external_multiple_structure(
-                new external_single_structure(
-                        [
-                                'name' => new external_value(PARAM_INT, 'The state element to update'),
-                                'action' => new external_value(PARAM_INT, 'The action to perform'),
-                                'fields' => manager::get_persona_structure(),
-                        ]
-                ),
-                'The activity entries list'
+    public static function get_message_structure(): external_single_structure {
+        return new external_single_structure(
+            [
+                'id' => new external_value(PARAM_TEXT, 'persona id', VALUE_OPTIONAL),
+                'conversationid' => new external_value(PARAM_INT, 'The conversation id'),
+                'content' => new external_value(PARAM_RAW, 'The message content'),
+                'sender' => new external_value(PARAM_TEXT, 'The sender (user or ai)'),
+            ],
+            'AI chat message data'
         );
+    }
+
+    public static function get_config_structure(): external_single_structure {
+        return new external_single_structure(
+            [
+                'currentPersona' => new external_value(PARAM_INT, 'id of the current persona', VALUE_OPTIONAL),
+                'conversationLimit' => new external_value(PARAM_INT, 'number of messages to pass to query', VALUE_OPTIONAL),
+                'windowMode' => new external_value(PARAM_TEXT, 'window mode', VALUE_OPTIONAL),
+                'mode' => new external_value(PARAM_TEXT, 'mode', VALUE_OPTIONAL),
+            ],
+            'AI chat config data'
+        );
+    }
+
+    /**
+     * Get the update structure.
+     *
+     * @return external_single_structure the update structure
+     */
+    public static function get_update_structure(external_single_structure|external_multiple_structure $fieldsstructure): external_multiple_structure {
+        return new external_multiple_structure(
+            new external_single_structure(
+                [
+                    'name' => new external_value(PARAM_TEXT, 'The state element to update'),
+                    'action' => new external_value(PARAM_TEXT, 'The action to perform'),
+                    'fields' => $fieldsstructure,
+                ]
+            ),
+            'Update structure for returning an update'
+        );
+    }
+
+    public function request_ai(string $prompt, array $options): array {
+        global $DB, $USER;
+        $options['itemid'] = $options['conversationid'];
+        $aimanager = new \local_ai_manager\manager('chat');
+        $requestresult = $aimanager->perform_request($prompt, 'block_ai_chat', $this->context->id, $options);
+        if ($requestresult->get_code() !== 200) {
+            // TODO Proper error handling
+            throw new \core\exception\moodle_exception('ERROR HANDLING STILL NEEDED');
+        }
+        // TODO So this is super inefficient of course. But we need to extend the AI manager to for example return the id of the log entry.
+        $logentry = $DB->get_record('local_ai_manager_request_log', ['id' => $requestresult->get_logrecordid()]);
+
+        return $this->convert_log_entry_to_messages($logentry);
+    }
+
+    public function convert_log_entry_to_messages(stdClass $logentry): array {
+        $connectorfactory = \core\di::get(\local_ai_manager\local\connector_factory::class);
+        $chatpurpose = $connectorfactory->get_purpose_by_purpose_string('chat');
+        return [
+            [
+                'name' => 'messages',
+                'action' => 'put',
+                'fields' => [
+                    'id' => $logentry->id . '-1',
+                    'conversationid' => $logentry->itemid,
+                    'content' => htmlspecialchars($logentry->prompttext),
+                    'sender' => 'user',
+                ]
+            ],
+            [
+                'name' => 'messages',
+                'action' => 'put',
+                'fields' => [
+
+                    'id' => $logentry->id . '-2',
+                    'conversationid' => $logentry->itemid,
+                    'content' => $chatpurpose->format_output($logentry->promptcompletion),
+                    'sender' => 'ai',
+                ],
+            ],
+        ];
     }
 }

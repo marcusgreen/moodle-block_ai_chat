@@ -46,8 +46,7 @@ along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
     {{/title}}
     {{$body}}
         <div class="block_ai_chat_modal_body">
-            <div data-block_ai_chat-element="personabanner"></div>
-            <button class="btn btn-danger" data-block_ai_chat-element="personaupdatebutton">CHANGE PERSONA</button>
+            {{> block_ai_chat/state_header }}
             <div class="block_ai_chat-dialog">
                 <div class="block_ai_chat-output-wrapper">
                     <div class="gradient-overlay"></div>
@@ -63,8 +62,8 @@ along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
                         <button class="btn btn-icon ai_chat_icon_button" data-action="openaiutils" name="Open AI tools">
                             <img src="{{globals.config.wwwroot}}/blocks/ai_chat/pix/ai-icon.svg" alt="" >
                         </button>
-                        <textarea class="form-control" id="block_ai_chat-input-id" rows="1" placeholder="{{#str}} input, block_ai_chat {{/str}}"></textarea>
-                        <button type="submit" id="block_ai_chat-submit-id" class="btn btn-primary">
+                        <textarea class="form-control" data-block_ai_chat-element="inputtextarea" rows="1" placeholder="{{#str}} input, block_ai_chat {{/str}}"></textarea>
+                        <button type="submit" data-block_ai_chat-element="submitbutton" class="btn btn-primary">
                             <i class="icon fa fa-arrow-right ml-2" aria-hidden="true"></i>
                         </button>
                     </div>
@@ -78,6 +77,6 @@ along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 {{/ core/modal }}
 {{#js}}
     require(['block_ai_chat/ai_chat_main'], function(AiChatMain) {
-        AiChatMain.init();
+        AiChatMain.init({{contextid}}, {{userid}});
     });
 {{/js}}

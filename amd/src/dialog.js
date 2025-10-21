@@ -33,6 +33,7 @@ import {escapeHTML, hash, scrollToBottom} from './helper';
 import * as TinyAiUtils from 'tiny_ai/utils';
 import TinyAiEditorUtils from 'tiny_ai/editor_utils';
 import {constants as TinyAiConstants} from 'tiny_ai/constants';
+import * as Ajax from "../../../../lib/amd/src/ajax";
 
 // Declare variables.
 const VIEW_CHATWINDOW = 'block_ai_chat_chatwindow';
@@ -147,6 +148,8 @@ export const init = async(params) => {
             badge: badge,
             showPersona: showPersona,
             showOptions: showOptions,
+            contextid,
+            userid
         },
     });
 
@@ -205,11 +208,11 @@ async function showModal() {
 
     // Add listener for input submission.
     const textarea = document.getElementById('block_ai_chat-input-id');
-    addTextareaListener(textarea);
+    //addTextareaListener(textarea);
     const button = document.getElementById('block_ai_chat-submit-id');
-    button.addEventListener("click", (event) => {
+    /*button.addEventListener("click", (event) => {
         clickSubmitButton(event);
-    });
+    });*/
 
     if (firstLoad) {
         // Load conversations.
@@ -333,7 +336,7 @@ async function showModal() {
         firstLoad = false;
     }
 
-    helper.focustextarea();
+    //helper.focustextarea();
 }
 
 
@@ -381,7 +384,7 @@ document.showConversation = showConversation;
  * @param {*} question
  */
 const enterQuestion = async(question) => {
-
+/*
     // Deny changing dialogs until answer present?
     if (question == '') {
         aiAtWork = false;
@@ -478,6 +481,8 @@ const enterQuestion = async(question) => {
     const userquota = document.getElementById('block_ai_chat_userquota');
     userquota.innerHTML = '';
     renderUserQuota('#block_ai_chat_userquota', ['chat']);
+    */
+
 };
 
 /**
@@ -506,9 +511,9 @@ const showReply = async(text) => {
 };
 
 const showMessages = async() => {
-    for (const item of conversation.messages) {
+    /*for (const item of conversation.messages) {
         await showMessage(item.message, item.sender);
-    }
+    }*/
 };
 
 /**
@@ -798,12 +803,12 @@ const addTextareaListener = (textarea) => {
  * @param {*} event
  */
 const textareaOnKeydown = (event) => {
-    if (event.key === 'Enter' && !aiAtWork && !event.shiftKey) {
+    /*if (event.key === 'Enter' && !aiAtWork && !event.shiftKey) {
         aiAtWork = true;
         enterQuestion(event.target.value);
         event.preventDefault();
         event.target.value = '';
-    }
+    }*/
 };
 
 /**

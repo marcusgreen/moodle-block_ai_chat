@@ -75,30 +75,11 @@ class persona {
      * Get all relevant personas for this instance.
      * @return array
      */
-    public static function get_all_personas(): array {
-        global $DB, $USER;
+    public static function get_all_personas(int $userid): array {
+        global $DB;
 
-        $names = [];
-        // Add option "none".
-        $names[0] = get_string('nopersona', 'block_ai_chat');
-        $prompts = [];
-        $userinfos = [];
-        $sql = "SELECT per.id, per.userid, per.name, per.prompt, per.userinfo, sel.personasid FROM {block_ai_chat_personas} per
-                        LEFT JOIN {block_ai_chat_personas_selected} sel ON sel.personasid = per.id
-                        WHERE per.userid = 0 OR per.userid = :userid";
-        $personas = $DB->get_records_sql($sql, ['userid' => $USER->id]);
-        $templateids = [];
-        foreach ($personas as $key => $persona) {
-            // Add space for form select formatting.
-            $names[$persona->id] = "&nbsp;" . s($persona->name);
-            $prompts[$persona->id] = s($persona->prompt);
-            $userinfos[$persona->id] = s($persona->userinfo);
-            // Get admintemplates with userid 0.
-            if ($persona->userid == 0) {
-                $templateids[] = $persona->id;
-            }
-        }
-
-        return [$userinfos, $personas, $names, $prompts, $templateids];
+        // TODO Also add system personas
+        $personas = $DB->get_records('block_ai_chat_personas', ['userid' => $userid], '', 'id, userid, name, prompt, userinfo');
+        return empty($personas) ? [] : $personas;
     }
 }
