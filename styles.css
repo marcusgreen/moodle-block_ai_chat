@@ -232,7 +232,7 @@ body:not(.block_ai_chat_replacehelp).hasstickyfooter #ai_chat_button {
 }
 .block_ai_chat_modal .block_ai_chat-output-wrapper {
   overflow-y: auto;
-  height: 85%;
+  height: 100%;
   padding-right: 1rem;
 }
 .block_ai_chat_modal .block_ai-history-items {

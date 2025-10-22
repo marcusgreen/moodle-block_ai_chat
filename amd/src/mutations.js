@@ -43,7 +43,7 @@ class Mutations {
 
         console.log('mutatino called')
 
-        let ajaxresult = await ajax.call([{
+        let ajaxresult = await Ajax.call([{
             methodname: 'block_ai_chat_select_persona',
             args: {
                 contextid,
@@ -85,11 +85,12 @@ class Mutations {
     }
 
     async submitAiRequest(stateManager, prompt) {
-        // TODO First render a loading message
         this.setLoadingState(stateManager, true);
         const options = {
-            conversationid: stateManager.state.conversationid,
+            conversationid: stateManager.state.config.currentConversationId,
         };
+        console.log("options:");
+        console.log(options);
         const requestOptions = JSON.stringify(options);
         const result = await Ajax.call([{
             methodname: 'block_ai_chat_request_ai',

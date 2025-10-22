@@ -16,6 +16,7 @@
 
 namespace block_ai_chat;
 
+use block_ai_chat\local\options;
 use block_ai_chat\local\persona;
 use context_block;
 
@@ -305,13 +306,22 @@ class manager {
     public function request_ai(string $prompt, array $options): array {
         global $DB, $USER;
         $options['itemid'] = $options['conversationid'];
+        unset($options['conversationid']);
+        $optionsrecords = options::get_options($this->context->id);
+        $conversationlimit = 5;
+        if ($optionsrecords && array_filter($optionsrecords, fn($record) => $record->name === 'historycontextmax') > 0) {
+
+            $historycontextmaxrecord =
+                array_values(array_filter($optionsrecords, fn($record) => $record->name === 'historycontextmax'))[0];
+            $conversationlimit = (int) $historycontextmaxrecord->value;
+        }
+        $options['conversationcontext'] = $this->retrieve_conversationcontext($options['itemid'], $USER->id, $conversationlimit);
         $aimanager = new \local_ai_manager\manager('chat');
         $requestresult = $aimanager->perform_request($prompt, 'block_ai_chat', $this->context->id, $options);
         if ($requestresult->get_code() !== 200) {
             // TODO Proper error handling
             throw new \core\exception\moodle_exception('ERROR HANDLING STILL NEEDED');
         }
-        // TODO So this is super inefficient of course. But we need to extend the AI manager to for example return the id of the log entry.
         $logentry = $DB->get_record('local_ai_manager_request_log', ['id' => $requestresult->get_logrecordid()]);
 
         return $this->convert_log_entry_to_messages($logentry);
@@ -343,5 +353,31 @@ class manager {
                 ],
             ],
         ];
+    }
+
+    public function retrieve_conversationcontext(int $itemid, int $userid, int $conversationlimit): array {
+        $logentries = ai_manager_utils::get_log_entries(
+            'block_ai_chat',
+            $this->context->id,
+            $userid,
+            $itemid,
+            false,
+            '*',
+            ['chat'],
+            $conversationlimit
+        );
+
+        $messages = [];
+        foreach ($logentries as $logentry) {
+            $messages[] = [
+                'sender' => 'user',
+                'message' => $logentry->prompttext,
+            ];
+            $messages[] = [
+                'sender' => 'ai',
+                'message' => $logentry->promptcompletion,
+            ];
+        }
+        return $messages;
     }
 }

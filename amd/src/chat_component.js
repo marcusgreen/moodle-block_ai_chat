@@ -1,5 +1,4 @@
 import {BaseComponent} from 'core/reactive';
-import Templates from 'core/templates';
 import * as helper from 'block_ai_chat/helper';
 
 class ChatComponent extends BaseComponent {
@@ -70,7 +69,6 @@ class ChatComponent extends BaseComponent {
     getWatchers() {
         return [
             {watch: `messages:created`, handler: this._addMessageToChatArea},
-            {watch: `messages:deleted`, handler: this._removeMessageFromChatArea},
             {watch: `config.currentPersona:updated`, handler: this._refreshPersona},
             {watch: `config.loadingState:updated`, handler: this._handleLoadingStateUpdated},
         ];
@@ -87,30 +85,29 @@ class ChatComponent extends BaseComponent {
      */
     async _addMessageToChatArea({element}) {
         // We have a convenience method to locate elements inside the component.
-        console.log('MESSAGES WERDEN GERENDERT')
+        console.log('MESSAGE WIRD HINZUGEFÜGT')
         console.log(element);
         // TODO Filter messages that do not belong to the current conversation
 
+        let placeholder = document.createElement('div');
+        placeholder.setAttribute('data-id', element.id);
+        let node = this.element.querySelector('.block_ai_chat-output');
+        node.appendChild(placeholder);
         const templateData = {
             id: element.id,
             senderai: element.sender === 'ai',
             content: element.content,
             loading: element.hasOwnProperty('loading') ? element.loading : false,
         };
-        const {html, js} = await Templates.renderForPromise('block_ai_chat/message', templateData);
-        Templates.appendNodeContents('.block_ai_chat-output', html, js);
+        const newcomponent = await this.renderComponent(placeholder, 'block_ai_chat/message', templateData);
+        const newelement = newcomponent.getElement();
+        node.replaceChild(newelement, placeholder);
 
         // Add copy listener for question and reply.
         helper.attachCopyListenerLast();
 
         // Scroll the modal content to the bottom.
         helper.scrollToBottom();
-        //const target = this.getElement(this.selectors.MESSAGES, element.id);
-    }
-
-    _removeMessageFromChatArea({element}) {
-        // TODO Fetch component here instead of "manual" selector
-        this.getElement(`[data-block_ai_chat-messageid='${element.id}']`).remove();
     }
 
     /**
@@ -125,11 +122,7 @@ class ChatComponent extends BaseComponent {
     _refreshPersona({element}) {
         // We have a convenience method to locate elements inside the component.
         const newPersonaId = element.currentPersona;
-        console.log(newPersonaId);
-        console.log('PERSONA WIRD REFRESHED')
-        console.log(this.getElement(this.selectors.PERSONABANNER))
         this.getElement(this.selectors.PERSONABANNER).innerText = `${this.reactive.state.personas.get(newPersonaId).userinfo}`;
-        //const target = this.getElement(this.selectors.MESSAGES, element.id);
     }
 
 
@@ -160,10 +153,6 @@ class ChatComponent extends BaseComponent {
     }
 
     async _handleLoadingStateUpdated({element}) {
-
-        console.log("loading state updated")
-        console.log(element.loadingState)
-
         const loadingSpinnerMessage = {
             'id': 'loadingspinner',
             'sender': 'user',
@@ -180,12 +169,8 @@ class ChatComponent extends BaseComponent {
             await this._addMessageToChatArea({element: temporaryPromptMessage});
             await this._addMessageToChatArea({element: loadingSpinnerMessage});
             this.getElement(this.selectors.INPUT_TEXTAREA).value = '';
-        } else {
-            this._removeMessageFromChatArea({element: temporaryPromptMessage});
-            this._removeMessageFromChatArea({element: loadingSpinnerMessage});
         }
     }
-
 }
 
 export default ChatComponent;

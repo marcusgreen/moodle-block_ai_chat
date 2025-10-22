@@ -96,7 +96,7 @@ export const init = async (contextid, userid) => {
             userid
         }
     }])[0];
-    state.config.currentConversationId = messages[0].conversationid;
+    state.config.currentConversationId = messages[0].fields.conversationid;
     console.log(messages)
     reactiveChat.stateManager.processUpdates(messages);
 

@@ -28,7 +28,7 @@
 {{! Show message from user or ai }}
 
 <div class="message {{#senderai}}agent{{/senderai}}{{^senderai}}ai{{/senderai}}"{{!
-  }} data-block_ai_chat-messageid="{{id}}"{{#loading}} data-block_ai_chat-element="loadingspinner"{{/loading}}>
+  }} data-block_ai_chat-messageid="{{id}}">
     <div class="content filter_mathjaxloader_equation{{#loading}} awaitanswer{{/loading}}">
         <img src="{{globals.config.wwwroot}}/blocks/ai_chat/pix/ai-icon.svg" alt="" class="ai_chat_icon mr-2">
         <div class="copiedtoast">{{#str}} copied, block_ai_chat {{/str}}</div>
@@ -46,4 +46,8 @@
         {{/loading}}
     </div>
 </div>
-</div>
+{{#js}}
+require(['block_ai_chat/message'], function(component) {
+    component.init('[data-block_ai_chat-messageid="{{id}}"]');
+});
+{{/js}}
