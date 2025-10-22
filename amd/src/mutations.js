@@ -13,8 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-import ajax from 'core/ajax';
-import * as Ajax from "../../../../lib/amd/src/ajax";
+import * as Ajax from 'core/ajax';
 
 /**
  * Default mutation manager
@@ -87,6 +86,7 @@ class Mutations {
 
     async submitAiRequest(stateManager, prompt) {
         // TODO First render a loading message
+        this.setLoadingState(stateManager, true);
         const options = {
             conversationid: stateManager.state.conversationid,
         };
@@ -101,8 +101,16 @@ class Mutations {
         }])[0];
         // TODO error handling
         console.log(result);
+        this.setLoadingState(stateManager, false);
         stateManager.processUpdates(result);
     }
+
+    setLoadingState(stateManager, isLoading) {
+        stateManager.setReadOnly(false);
+        stateManager.state.config.loadingState = isLoading;
+        stateManager.setReadOnly(true);
+    }
+
 }
 
 export const mutations = new Mutations();

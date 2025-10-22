@@ -79,6 +79,9 @@ body:not(.block_ai_chat_replacehelp).hasstickyfooter #ai_chat_button {
        align-items: flex-start;
        padding: .5rem 1rem .5rem 1rem;
        position: relative;
+           .text {
+               max-width: 100%;
+           }
    }
    .message .copy {
        visibility: hidden;
@@ -243,7 +246,8 @@ body:not(.block_ai_chat_replacehelp).hasstickyfooter #ai_chat_button {
     }
     .block_ai_chat-output-wrapper {
         overflow-y: auto;
-        height: 100%;
+        // TODO Probably just a temporary fix, eventually set back to 100%?
+        height: 85%;
         padding-right: 1rem;
     }
     .block_ai-history-items {

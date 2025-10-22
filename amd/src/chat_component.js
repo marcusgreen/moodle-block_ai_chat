@@ -21,6 +21,8 @@ class ChatComponent extends BaseComponent {
             PERSONA_SELECT_DROPDOWN: `[data-block_ai_chat-element='personaselectdropdown']`,
             INPUT_TEXTAREA: `[data-block_ai_chat-element='inputtextarea']`,
             SUBMIT_BUTTON: `[data-block_ai_chat-element='submitbutton']`,
+            LOADING_SPINNER_MESSAGE: `[data-block_ai_chat-element='loadingspinner']`,
+            TEMPORARY_PROMPT_MESSAGE: `[data-block_ai_chat-element='temporaryprompt']`,
         };/*
         this.classes = {
             BITTEN: `bitten`,
@@ -67,8 +69,10 @@ class ChatComponent extends BaseComponent {
      */
     getWatchers() {
         return [
-            {watch: `messages:created`, handler: this._renderMessageToChatArea},
+            {watch: `messages:created`, handler: this._addMessageToChatArea},
+            {watch: `messages:deleted`, handler: this._removeMessageFromChatArea},
             {watch: `config.currentPersona:updated`, handler: this._refreshPersona},
+            {watch: `config.loadingState:updated`, handler: this._handleLoadingStateUpdated},
         ];
     }
 
@@ -81,7 +85,7 @@ class ChatComponent extends BaseComponent {
      * @param {object} param the watcher param.
      * @param {object} param.element the person structure.
      */
-    async _renderMessageToChatArea({element}) {
+    async _addMessageToChatArea({element}) {
         // We have a convenience method to locate elements inside the component.
         console.log('MESSAGES WERDEN GERENDERT')
         console.log(element);
@@ -90,7 +94,8 @@ class ChatComponent extends BaseComponent {
         const templateData = {
             id: element.id,
             senderai: element.sender === 'ai',
-            content: element.content
+            content: element.content,
+            loading: element.hasOwnProperty('loading') ? element.loading : false,
         };
         const {html, js} = await Templates.renderForPromise('block_ai_chat/message', templateData);
         Templates.appendNodeContents('.block_ai_chat-output', html, js);
@@ -101,6 +106,11 @@ class ChatComponent extends BaseComponent {
         // Scroll the modal content to the bottom.
         helper.scrollToBottom();
         //const target = this.getElement(this.selectors.MESSAGES, element.id);
+    }
+
+    _removeMessageFromChatArea({element}) {
+        // TODO Fetch component here instead of "manual" selector
+        this.getElement(`[data-block_ai_chat-messageid='${element.id}']`).remove();
     }
 
     /**
@@ -148,6 +158,34 @@ class ChatComponent extends BaseComponent {
         const prompt = textarea.value;
         this.reactive.dispatch('submitAiRequest', prompt);
     }
+
+    async _handleLoadingStateUpdated({element}) {
+
+        console.log("loading state updated")
+        console.log(element.loadingState)
+
+        const loadingSpinnerMessage = {
+            'id': 'loadingspinner',
+            'sender': 'user',
+            'loading': true
+        };
+
+        const temporaryPromptMessage= {
+            'id': 'temporaryprompt',
+            'sender': 'user',
+            'content': this.getElement(this.selectors.INPUT_TEXTAREA).value,
+        };
+
+        if (element.loadingState) {
+            await this._addMessageToChatArea({element: temporaryPromptMessage});
+            await this._addMessageToChatArea({element: loadingSpinnerMessage});
+            this.getElement(this.selectors.INPUT_TEXTAREA).value = '';
+        } else {
+            this._removeMessageFromChatArea({element: temporaryPromptMessage});
+            this._removeMessageFromChatArea({element: loadingSpinnerMessage});
+        }
+    }
+
 }
 
 export default ChatComponent;

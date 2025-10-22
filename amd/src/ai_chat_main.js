@@ -39,7 +39,8 @@ export const init = async (contextid, userid) => {
             "conversationLimit": 5,
             "windowMode": "docked",
             "mode": "agent",
-            "CurrentConversationId": 0
+            "currentConversationId": 0,
+            "loadingState": false
         },
         "messages": [],
         "personas": [
