@@ -69,6 +69,18 @@ class block_ai_chat extends block_base {
             return $this->content;
         }
 
+        // Check if user is admin and verify page context availability.
+        if (is_siteadmin($USER->id)) {
+            $pagecontext = $this->page->context;
+            if ($pagecontext && $pagecontext->id > 0) {
+                $msg = get_string('contextfound', 'block_ai_chat');
+                \core\notification::add($msg, \core\notification::SUCCESS);
+            } else {
+                $msg = get_string('nocontextfound', 'block_ai_chat');
+                \core\notification::add($msg, \core\notification::SUCCESS);
+            }
+        }
+
         // We retrieve the config for all the purposes we are using. This includes the purposes that tiny_ai uses, because even
         // if the chat purpose is not available, the user should still be able to use the chatbot for accessing the tiny_ai tools.
         $aiconfig = ai_manager_utils::get_ai_config(

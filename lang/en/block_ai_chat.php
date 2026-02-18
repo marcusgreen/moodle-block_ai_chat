@@ -116,3 +116,5 @@ $string['typeuser'] = 'User persona';
 $string['userinfo'] = 'Info shown to users';
 $string['userpersonas'] = 'My personas';
 $string['yesterday'] = 'Yesterday';
+$string['contextfound'] = 'Additional page context has been found.';
+$string['nocontextfound'] = 'No additional page context has been found.';
