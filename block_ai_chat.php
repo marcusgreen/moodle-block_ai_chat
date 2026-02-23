@@ -56,6 +56,7 @@ class block_ai_chat extends block_base {
     #[\Override]
     public function get_content(): stdClass {
         global $USER;
+
         if ($this->content !== null) {
             return $this->content;
         }
@@ -67,18 +68,6 @@ class block_ai_chat extends block_base {
         $context = \context_block::instance($this->instance->id);
         if (!has_capability('block/ai_chat:view', $context)) {
             return $this->content;
-        }
-
-        // Check if user is admin and verify page context availability.
-        if (is_siteadmin($USER->id)) {
-            $pagecontext = $this->page->context;
-            if ($pagecontext && $pagecontext->id > 0) {
-                $msg = get_string('contextfound', 'block_ai_chat');
-                \core\notification::add($msg, \core\notification::SUCCESS);
-            } else {
-                $msg = get_string('nocontextfound', 'block_ai_chat');
-                \core\notification::add($msg, \core\notification::SUCCESS);
-            }
         }
 
         // We retrieve the config for all the purposes we are using. This includes the purposes that tiny_ai uses, because even
@@ -106,6 +95,7 @@ class block_ai_chat extends block_base {
         /** @var block_ai_chat\output\renderer $aioutput */
         $aioutput = $this->page->get_renderer('block_ai_chat');
         $this->content->text = $aioutput->render_ai_chat_content($this);
+        $this->has_page_context();
 
         if ($this->page->user_is_editing()) {
             return $this->content;
@@ -165,6 +155,7 @@ class block_ai_chat extends block_base {
     public function instance_create() {
         global $DB;
 
+
         // For standard dashboard keep the standard.
         if (isset($this->page->context) && $this->page->context::instance()->id != SYSCONTEXTID) {
             return true;
@@ -184,5 +175,42 @@ class block_ai_chat extends block_base {
         $DB->delete_records('block_ai_chat_options', ['contextid' => $this->context->id]);
         ai_manager_utils::mark_log_entries_as_deleted('block_ai_chat', $this->context->id);
         return true;
+    }
+    /**
+     * If current user is site admin check if there
+     * is additional context for this page
+     *
+     * @return boolean
+     */
+    public function has_page_context(): bool {
+        global $USER, $DB;
+        if (!is_siteadmin($USER->id)) {
+            return false;
+        }
+            [$pagetypeinsql, $pagetypeinparams] =
+                $DB->get_in_or_equal(
+                    matching_page_type_patterns($this->page->pagetype),
+                    SQL_PARAMS_NAMED
+                );
+            $sql = "SELECT aic.name FROM {block_ai_chat_aicontext_usage} u
+                JOIN {block_ai_chat_aicontext} aic ON u.aicontextid = aic.id
+               WHERE u.pagetype $pagetypeinsql AND aic.enabled = :enabled";
+            $additionalcontexts = $DB->get_fieldset_sql(
+                $sql,
+                [
+                    ...$pagetypeinparams,
+                    'enabled' => 1,
+                ]
+            );
+        if ($additionalcontexts) {
+                $msg = get_string('contextfound', 'block_ai_chat');
+                $msg .= " " . $additionalcontexts[0];
+                  \core\notification::add($msg, \core\notification::SUCCESS);
+                  return true;
+        } else {
+                $msg = get_string('nocontextfound', 'block_ai_chat');
+             \core\notification::add($msg, \core\notification::SUCCESS);
+             return false;
+        }
     }
 }
