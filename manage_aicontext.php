@@ -46,8 +46,8 @@ foreach ($aicontextrecords as $aicontext) {
     $aicontexts[] = [
         'id' => $aicontext->id,
         'name' => $aicontext->name,
-        'description' => format_text($aicontext->description ?? '', FORMAT_PLAIN, ['filter' => false]),
-        'content' => format_text($aicontext->content ?? '', FORMAT_PLAIN, ['filter' => false]),
+        'description' => format_text($aicontext->description ?? '', FORMAT_MARKDOWN, ['filter' => false]),
+        'content' => format_text($aicontext->content ?? '', FORMAT_MARKDOWN, ['filter' => false]),
         'pagetypes' => implode(', ', $pagetypes),
         'enabled' => $aicontext->enabled,
     ];

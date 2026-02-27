@@ -62,8 +62,8 @@
             {{#aicontexts}}
                 <tr>
                     <td><a href="{{config.wwwroot}}/blocks/ai_chat/edit_aicontext.php?id={{id}}">{{name}}</a></td>
-                    <td><div class="block_ai_chat-aicontext_cell">{{description}}</div></td>
-                    <td><div class="block_ai_chat-aicontext_cell">{{content}}</div></td>
+                    <td><div class="block_ai_chat-aicontext_cell">{{{description}}}</div></td>
+                    <td><div class="block_ai_chat-aicontext_cell">{{{content}}}</div></td>
                     <td>{{pagetypes}}</td>
                     <td>
                         {{#enabled}}<span class="text-success"><i class="fa fa-check" title="{{#str}}enabled, block_ai_chat{{/str}}"></i></span>{{/enabled}}
